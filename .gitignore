@@ -1,0 +1,28 @@
+# Build
+bin/
+obj/
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+
+# Configuration locale
+.env
+appsettings.Development.json
+
+# Visual Studio
+.vs/
+
+# VS Code
+.vscode/
+
+# Rider
+.idea/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
