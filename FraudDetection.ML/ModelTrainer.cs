@@ -57,7 +57,28 @@ namespace FraudDetection.ML
                 // C'est fiable, rapide, et ça marche bien même avec peu de données,
                 // contrairement à d'autres algorithmes qui ont besoin de millions
                 // d'exemples pour être efficaces.
-                .Append(mlContext.BinaryClassification.Trainers.FastTree());
+                .Append(mlContext.BinaryClassification.Trainers.FastTree(
+                    new Microsoft.ML.Trainers.FastTree.FastTreeBinaryTrainer.Options
+                    {
+                        LabelColumnName = "Label",
+                        FeatureColumnName = "Features",
+
+                        // On limite le nombre d'arbres construits (par défaut c'est 100).
+                        // Moins d'arbres = le modèle apprend les tendances GENERALES,
+                        // pas les détails/exceptions de chaque ligne individuelle.
+                        NumberOfTrees = 25,
+
+                        // On limite la complexité de chaque arbre (moins de "branches").
+                        // Un arbre trop détaillé peut créer une règle ultra-spécifique
+                        // pour un seul cas, ce qui cause la sur-confiance qu'on a vue.
+                        NumberOfLeaves = 8,
+
+                        // On exige qu'au moins 10 exemples suivent la même branche avant
+                        // de la considérer valide. Ça évite de créer des règles basées
+                        // sur 1 ou 2 cas isolés (bruit) plutôt que sur une vraie tendance.
+                        MinimumExampleCountPerLeaf = 10
+                    }
+                ));
 
             // ----- ENTRAÎNEMENT -----
 
