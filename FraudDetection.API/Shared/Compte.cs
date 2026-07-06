@@ -1,4 +1,6 @@
-﻿namespace FraudDetection.API.Shared
+﻿using FraudDetection.API.Features.Transactions;
+
+namespace FraudDetection.API.Shared
 {
     public class Compte
     {
@@ -8,7 +10,7 @@
         public string Type { get; set; } = "Courant";
         public decimal SoldeMoyen { get; set; }
         public string LieuHabituel { get; set; } = string.Empty;
-        public DateTime OuvertLe { get; set; } = DateTime.Now;
+        public DateTime OuvertLe { get; set; } = DateTime.UtcNow;
 
         // Navigation
         public Client? Client { get; set; }

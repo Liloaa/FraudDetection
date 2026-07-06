@@ -1,4 +1,5 @@
-﻿namespace FraudDetection.API.Features.Transactions
+﻿// Features/Transactions/Transaction.cs
+namespace FraudDetection.API.Features.Transactions
 {
     public class Transaction
     {
@@ -10,7 +11,7 @@
 
         // Normal | Suspect | Confirme
         public string Statut { get; set; } = "Normal";
-        public DateTime DateTransaction { get; set; } = DateTime.Now;
+        public DateTime DateTransaction { get; set; } = DateTime.UtcNow;
 
         // Navigation
         public Shared.Compte? Compte { get; set; }

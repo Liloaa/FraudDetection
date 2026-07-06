@@ -8,7 +8,7 @@
         public float ScoreRisque { get; set; }
         public string? Raison { get; set; }
         public string Statut { get; set; } = "EnAttente";
-        public DateTime DetecteLe { get; set; } = DateTime.Now;
+        public DateTime DetecteLe { get; set; } = DateTime.UtcNow;
 
         // Navigation
         public Features.Transactions.Transaction? Transaction { get; set; }

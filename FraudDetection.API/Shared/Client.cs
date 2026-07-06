@@ -7,7 +7,7 @@
         public string Prenom { get; set; } = string.Empty;
         public string? Email { get; set; }
         public string? Telephone { get; set; }
-        public DateTime CreeLe { get; set; } = DateTime.Now;
+        public DateTime CreeLe { get; set; } = DateTime.UtcNow;
 
         // Navigation
         public ICollection<Compte>? Comptes { get; set; }
