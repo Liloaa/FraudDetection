@@ -1,27 +1,33 @@
+using FraudDetection.API.Features.Transactions;
+using FraudDetection.API.Shared;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Base de données SQLite
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(
+    builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Controllers + Pages Razor
 builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
+
+// SignalR (Membre 3 en aura besoin)
+builder.Services.AddSignalR();
+
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
-
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapRazorPages();
 
 app.Run();
