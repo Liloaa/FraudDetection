@@ -1,6 +1,59 @@
-﻿namespace FraudDetection.API.Pages
-{
-    public class Alertes
+﻿@page "/Alertes"
+@model FraudDetection.API.Pages.AlertesModel
+@{
+    ViewData["Title"] = "Alertes";
+}
+
+<div class="page-header">
+    <div>
+        <h1>Alertes</h1>
+        <p><span id="live-dot" class="live-dot"></span>Mises à jour en direct via SignalR.</p>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+<div class="panel">
+    @if (Model.Alertes.Any())
     {
+        <table>
+            <thead>
+                <tr><th>Détectée le</th><th>Transaction</th><th>Score</th><th>Raison</th><th>Statut</th><th>Action</th></tr>
+            </thead>
+            <tbody id="alertes-tbody">
+                @foreach (var a in Model.Alertes)
+                {
+                    <tr id="alerte-@a.Id">
+                        <td class="mono">@a.DetecteLe.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            #@a.TransactionId
+                            @if (a.Transaction?.Compte?.Client != null)
+                            {
+                                <div style="color:var(--text-muted); font-size:.8rem">@a.Transaction.Compte.Client.Prenom @a.Transaction.Compte.Client.Nom</div>
+                            }
+                        </td>
+                        <td class="mono">@a.ScoreRisque.ToString("P0")</td>
+                        <td>@a.Raison</td>
+                        <td><span class="badge @a.Statut">@a.Statut</span></td>
+                        <td>
+                            @if (a.Statut == "EnAttente")
+                            {
+                                <button class="btn small normal" data-action="Confirme" data-id="@a.Id">Confirmer</button>
+                                <button class="btn small ghost" data-action="Rejete" data-id="@a.Id">Rejeter</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     }
+    else
+    {
+        <div class="empty-state">Aucune alerte pour l'instant.</div>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/signalr.js"></script>
+    <script src="~/js/alertes.js"></script>
 }

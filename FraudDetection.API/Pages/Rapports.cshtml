@@ -1,6 +1,82 @@
-﻿namespace FraudDetection.API.Pages
-{
-    public class Rapports
-    {
-    }
+﻿@page "/Rapports"
+@model FraudDetection.API.Pages.RapportsModel
+@{
+    ViewData["Title"] = "Rapports";
+}
+
+<div class="page-header">
+    <div>
+        <h1>Rapports</h1>
+        <p>Statistiques et tendances de détection de fraude.</p>
+    </div>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="label">Total transactions</div>
+        <div class="value mono">@Model.Resume.TotalTransactions</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Taux de fraude</div>
+        <div class="value mono">@Model.Resume.TauxFraudePourcent %</div>
+    </div>
+    <div class="stat-card danger">
+        <div class="label">Montant suspect cumulé</div>
+        <div class="value mono">@Model.Resume.MontantTotalSuspect.ToString("N0") Ar</div>
+    </div>
+</div>
+
+<div class="panel">
+    <h2>Transactions par jour (7 derniers jours)</h2>
+    <canvas id="chart-jours" height="90"></canvas>
+</div>
+
+<div class="panel">
+    <h2>Répartition par lieu</h2>
+    <canvas id="chart-lieux" height="90"></canvas>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        const couleurTexte = "#8B97A8";
+        const couleurGrille = "#2A3441";
+        Chart.defaults.color = couleurTexte;
+        Chart.defaults.borderColor = couleurGrille;
+
+        async function chargerParJour() {
+        const res = await fetch("/api/rapports/par-jour?jours=7");
+        const data = await res.json();
+        new Chart(document.getElementById("chart-jours"), {
+        type: "line",
+        data: {
+        labels: data.map(d => new Date(d.jour).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })),
+        datasets: [
+        { label: "Total", data: data.map(d => d.nombreTransactions), borderColor: "#4C8DFF", backgroundColor: "rgba(76,141,255,.12)", tension: .35, fill: true },
+        { label: "Suspectes", data: data.map(d => d.nombreSuspectes), borderColor: "#E8A33D", backgroundColor: "rgba(232,163,61,.12)", tension: .35, fill: true }
+        ]
+        },
+        options: { responsive: true, plugins: { legend: { labels: { color: couleurTexte } } } }
+        });
+        }
+
+        async function chargerParLieu() {
+        const res = await fetch("/api/rapports/par-lieu");
+        const data = await res.json();
+        new Chart(document.getElementById("chart-lieux"), {
+        type: "bar",
+        data: {
+        labels: data.map(d => d.lieu),
+        datasets: [
+        { label: "Transactions", data: data.map(d => d.nombreTransactions), backgroundColor: "#4C8DFF" },
+        { label: "Suspectes", data: data.map(d => d.nombreSuspectes), backgroundColor: "#E8A33D" }
+        ]
+        },
+        options: { responsive: true, plugins: { legend: { labels: { color: couleurTexte } } } }
+        });
+        }
+
+        chargerParJour();
+        chargerParLieu();
+    </script>
 }
