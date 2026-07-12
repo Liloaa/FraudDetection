@@ -2,6 +2,7 @@ using FraudDetection.API.Features.Alertes;
 using FraudDetection.API.Features.Auth;
 using FraudDetection.API.Features.Rapports;
 using FraudDetection.API.Features.Transactions;
+using FraudDetection.API.Services;
 using FraudDetection.API.Shared;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
@@ -53,6 +54,7 @@ builder.Services.AddScoped<IPasswordHasher<Utilisateur>, PasswordHasher<Utilisat
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IAlerteService, AlerteService>();
 builder.Services.AddScoped<IStatistiquesService, StatistiquesService>();
+builder.Services.AddScoped<IFraudDetectionService, FraudDetectionService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -159,7 +161,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
