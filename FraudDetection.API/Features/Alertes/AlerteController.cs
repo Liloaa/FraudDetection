@@ -13,24 +13,28 @@ namespace FraudDetection.API.Features.Alertes
             _alerteService = alerteService;
         }
 
-        // GET /api/alertes
         [HttpGet]
         public async Task<IActionResult> ObtenirToutes()
         {
-            var alertes = await _alerteService.ObtenirToutesAsync();
+            var alertes = await _alerteService.GetToutesAsync();
             return Ok(alertes);
         }
 
-        // GET /api/alertes/{id}
+        [HttpGet("en-attente")]
+        public async Task<IActionResult> ObtenirEnAttente()
+        {
+            var alertes = await _alerteService.GetEnAttenteAsync();
+            return Ok(alertes);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> ObtenirParId(int id)
         {
-            var alerte = await _alerteService.ObtenirParIdAsync(id);
+            var alerte = await _alerteService.GetByIdAsync(id);
             if (alerte == null) return NotFound();
             return Ok(alerte);
         }
 
-        // PUT /api/alertes/{id}/statut
         [HttpPut("{id}/statut")]
         public async Task<IActionResult> ChangerStatut(int id, [FromBody] ChangerStatutRequest request)
         {
@@ -40,10 +44,9 @@ namespace FraudDetection.API.Features.Alertes
         }
     }
 
-    // Petit objet pour recevoir le body du PUT proprement
     public class ChangerStatutRequest
     {
         public string Statut { get; set; } = string.Empty;
-        public int? UtilisateurId { get; set; }
+        public int UtilisateurId { get; set; }
     }
 }
