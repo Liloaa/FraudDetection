@@ -1,6 +1,11 @@
-using FraudDetection.API.Features.Transactions;
 using FraudDetection.API.Features.Alertes;
+using FraudDetection.API.Features.Auth;
+using FraudDetection.API.Features.Rapports;
+using FraudDetection.API.Features.Transactions;
+using FraudDetection.API.Services;
 using FraudDetection.API.Shared;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,7 +16,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ← CORRECTION ICI
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
     {
@@ -20,10 +24,32 @@ builder.Services.AddControllersWithViews()
         options.JsonSerializerOptions.WriteIndented = true;
     });
 
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options =>
+{
+    options.Conventions.AuthorizeFolder("/");
+});
+
 builder.Services.AddSignalR();
+
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Auth/Login";
+        options.LogoutPath = "/Auth/Logout";
+        options.AccessDeniedPath = "/Auth/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+    });
+builder.Services.AddAuthorization();
+
+builder.Services.AddScoped<IPasswordHasher<Utilisateur>, PasswordHasher<Utilisateur>>();
+
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IAlerteService, AlerteService>();
+builder.Services.AddScoped<IStatistiquesService, StatistiquesService>();
+builder.Services.AddScoped<IFraudDetectionService, FraudDetectionService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -74,8 +100,9 @@ using (var scope = app.Services.CreateScope())
         context.Comptes.AddRange(compte1, compte2);
         context.SaveChanges();
 
-        context.Transactions.AddRange(
-            new FraudDetection.API.Features.Transactions.Transaction
+        var transactionsSeed = new List<Transaction>
+        {
+            new Transaction
             {
                 CompteId = compte1.Id,
                 Montant = 150,
@@ -84,16 +111,16 @@ using (var scope = app.Services.CreateScope())
                 Statut = "Normal",
                 DateTransaction = DateTime.UtcNow.AddDays(-3)
             },
-            new FraudDetection.API.Features.Transactions.Transaction
+            new Transaction
             {
                 CompteId = compte1.Id,
                 Montant = 8500,
                 Lieu = "Singapour",
                 Type = "Virement",
-                Statut = "Suspect",
+                Statut = "Normal",
                 DateTransaction = DateTime.UtcNow.AddDays(-1)
             },
-            new FraudDetection.API.Features.Transactions.Transaction
+            new Transaction
             {
                 CompteId = compte2.Id,
                 Montant = 300,
@@ -102,7 +129,40 @@ using (var scope = app.Services.CreateScope())
                 Statut = "Normal",
                 DateTransaction = DateTime.UtcNow.AddDays(-2)
             }
-        );
+        };
+
+        context.Transactions.AddRange(transactionsSeed);
+        context.SaveChanges();
+
+        var fraudService = scope.ServiceProvider.GetRequiredService<IFraudDetectionService>();
+        var alerteService = scope.ServiceProvider.GetRequiredService<IAlerteService>();
+
+        foreach (var t in transactionsSeed)
+        {
+            var (score, raison) = fraudService.AnalyserAsync(t).GetAwaiter().GetResult();
+
+            t.Statut = score >= 0.5f ? "Suspect" : "Normal";
+
+            if (score >= 0.5f)
+            {
+                alerteService.CreerDepuisTransactionAsync(t.Id, score, raison)
+                    .GetAwaiter().GetResult();
+            }
+        }
+
+        context.SaveChanges();
+    }
+
+    if (!context.Utilisateurs.Any())
+    {
+        var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<Utilisateur>>();
+        var compteTest = new Utilisateur
+        {
+            Nom = "Admin",
+            Email = "admin@frauddetection.mg"
+        };
+        compteTest.MotDePasseHash = hasher.HashPassword(compteTest, "Admin123!");
+        context.Utilisateurs.Add(compteTest);
         context.SaveChanges();
     }
 }
@@ -113,15 +173,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Auth}/{action=Login}/{id?}");
 app.MapRazorPages();
 app.MapHub<AlerteHub>("/hubs/alertes");
 

@@ -1,22 +1,421 @@
-html {
-  font-size: 14px;
+/* ===========================================================
+   FraudDetection — thème "console de surveillance"
+   Palette sombre, accents par statut (Normal/Suspect/Confirmé),
+   typographie mixte texte/chiffres pour lisibilité des données.
+   =========================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+    --bg: #0F1319;
+    --surface: #161C25;
+    --surface-alt: #1D2530;
+    --border: #2A3441;
+    --text: #E8ECF1;
+    --text-muted: #8B97A8;
+    --accent: #4C8DFF;
+    --accent-soft: rgba(76,141,255,.12);
+    --normal: #35C29B;
+    --normal-soft: rgba(53,194,155,.14);
+    --suspect: #E8A33D;
+    --suspect-soft: rgba(232,163,61,.14);
+    --danger: #E5484D;
+    --danger-soft: rgba(229,72,77,.14);
+    --radius: 10px;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+* {
+    box-sizing: border-box;
 }
 
 body {
-  margin-bottom: 60px;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    margin: 0 0 .5rem;
+}
+
+.mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- Layout --- */
+.app-shell {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 230px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 1.25rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.brand {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+    .brand span {
+        color: var(--accent);
+    }
+
+.nav-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+}
+
+    .nav-list a {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        color: var(--text-muted);
+        padding: .55rem .7rem;
+        border-radius: var(--radius);
+        font-size: .92rem;
+        font-weight: 500;
+    }
+
+        .nav-list a:hover {
+            background: var(--surface-alt);
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .nav-list a.active {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+.sidebar-footer {
+    margin-top: auto;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+}
+
+.user-chip {
+    font-size: .85rem;
+    color: var(--text-muted);
+    margin-bottom: .5rem;
+}
+
+    .user-chip strong {
+        color: var(--text);
+        display: block;
+        font-size: .9rem;
+    }
+
+.role-badge {
+    display: inline-block;
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: .15rem .45rem;
+    border-radius: 5px;
+    background: var(--surface-alt);
+    color: var(--text-muted);
+    margin-top: .25rem;
+}
+
+.main {
+    flex: 1;
+    padding: 1.75rem 2rem;
+    max-width: 1200px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 1.5rem;
+}
+
+    .page-header p {
+        color: var(--text-muted);
+        margin: .15rem 0 0;
+        font-size: .92rem;
+    }
+
+/* --- Cards / stats --- */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(190px,1fr));
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+}
+
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.15rem;
+}
+
+    .stat-card .label {
+        font-size: .78rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .03em;
+    }
+
+    .stat-card .value {
+        font-family: var(--font-mono);
+        font-size: 1.7rem;
+        font-weight: 600;
+        margin-top: .3rem;
+    }
+
+    .stat-card.suspect .value {
+        color: var(--suspect);
+    }
+
+    .stat-card.danger .value {
+        color: var(--danger);
+    }
+
+    .stat-card.normal .value {
+        color: var(--normal);
+    }
+
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+    .panel h2 {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+
+/* --- Table --- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .9rem;
+}
+
+thead th {
+    text-align: left;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    padding: .5rem .6rem;
+    border-bottom: 1px solid var(--border);
+}
+
+tbody td {
+    padding: .65rem .6rem;
+    border-bottom: 1px solid var(--border);
+}
+
+tbody tr:hover {
+    background: var(--surface-alt);
+}
+
+.badge {
+    display: inline-block;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 600;
+}
+
+    .badge.Normal {
+        background: var(--normal-soft);
+        color: var(--normal);
+    }
+
+    .badge.Suspect {
+        background: var(--suspect-soft);
+        color: var(--suspect);
+    }
+
+    .badge.Confirme {
+        background: var(--danger-soft);
+        color: var(--danger);
+    }
+
+    .badge.EnAttente {
+        background: var(--suspect-soft);
+        color: var(--suspect);
+    }
+
+    .badge.Rejete {
+        background: var(--surface-alt);
+        color: var(--text-muted);
+    }
+
+/* --- Forms / buttons --- */
+.form-row {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    align-items: end;
+    margin-bottom: 1rem;
+}
+
+label {
+    display: block;
+    font-size: .8rem;
+    color: var(--text-muted);
+    margin-bottom: .3rem;
+}
+
+input, select {
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 7px;
+    padding: .5rem .65rem;
+    font-size: .88rem;
+    font-family: var(--font-body);
+}
+
+    input:focus, select:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+    }
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: .55rem 1rem;
+    font-size: .88rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+    .btn:hover {
+        filter: brightness(1.1);
+    }
+
+    .btn.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+    }
+
+    .btn.small {
+        padding: .35rem .7rem;
+        font-size: .78rem;
+    }
+
+    .btn.danger {
+        background: var(--danger);
+    }
+
+    .btn.normal {
+        background: var(--normal);
+    }
+
+.auth-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 30% 20%, rgba(76,141,255,.08), transparent 55%), var(--bg);
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 2rem;
+}
+
+    .auth-card h1 {
+        font-size: 1.3rem;
+    }
+
+    .auth-card .sub {
+        color: var(--text-muted);
+        font-size: .85rem;
+        margin-bottom: 1.5rem;
+    }
+
+.field {
+    margin-bottom: 1rem;
+}
+
+    .field input {
+        width: 100%;
+    }
+
+.error-text {
+    color: var(--danger);
+    font-size: .8rem;
+    margin-top: .3rem;
+}
+
+.alert-success {
+    background: var(--normal-soft);
+    color: var(--normal);
+    padding: .6rem .8rem;
+    border-radius: 7px;
+    font-size: .85rem;
+    margin-bottom: 1rem;
+}
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    display: inline-block;
+    margin-right: .4rem;
+}
+
+    .live-dot.on {
+        background: var(--normal);
+        box-shadow: 0 0 0 3px var(--normal-soft);
+    }
+
+.empty-state {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 2rem 1rem;
+    font-size: .9rem;
 }

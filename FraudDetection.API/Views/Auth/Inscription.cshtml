@@ -1,0 +1,46 @@
+﻿@model FraudDetection.API.Features.Auth.InscriptionViewModel
+@{
+    ViewData["Title"] = "Inscription";
+}
+
+<div class="d-flex justify-content-center align-items-center py-5">
+    <div class="card shadow-sm" style="max-width: 420px; width: 100%;">
+        <div class="card-body p-4">
+            <h1 class="h4 mb-4 text-center">Créer un compte</h1>
+
+            <form asp-controller="Auth" asp-action="Inscription" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Nom" class="form-label"></label>
+                    <input asp-for="Nom" class="form-control" autocomplete="name" autofocus />
+                    <span asp-validation-for="Nom" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" autocomplete="email" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="MotDePasse" class="form-label"></label>
+                    <input asp-for="MotDePasse" type="password" class="form-control" autocomplete="new-password" />
+                    <span asp-validation-for="MotDePasse" class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">S'inscrire</button>
+            </form>
+
+            <div class="text-center mt-3">
+                <a asp-controller="Auth" asp-action="Login">Déjà un compte ? Se connecter</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

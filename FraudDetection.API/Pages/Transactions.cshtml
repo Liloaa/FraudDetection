@@ -1,6 +1,84 @@
-﻿namespace FraudDetection.API.Pages
-{
-    public class Transactions
-    {
-    }
+﻿@page "/Transactions"
+@model FraudDetection.API.Pages.TransactionsModel
+@{
+    ViewData["Title"] = "Transactions";
 }
+
+<div class="page-header">
+    <div>
+        <h1>Transactions</h1>
+        <p>Filtrez, consultez et importez des transactions.</p>
+    </div>
+</div>
+
+@if (Model.Message != null)
+{
+    <div class="alert-success">@Model.Message</div>
+}
+
+<div class="panel">
+    <h2>Filtrer</h2>
+    <form method="get" class="form-row">
+        <div>
+            <label>Statut</label>
+            <select name="Statut">
+                <option value="">Tous</option>
+                <option value="Normal" selected="@(Model.Statut == "Normal")">Normal</option>
+                <option value="Suspect" selected="@(Model.Statut == "Suspect")">Suspect</option>
+                <option value="Confirme" selected="@(Model.Statut == "Confirme")">Confirmé</option>
+            </select>
+        </div>
+        <div>
+            <label>Du</label>
+            <input type="date" name="DateDebut" value="@Model.DateDebut?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div>
+            <label>Au</label>
+            <input type="date" name="DateFin" value="@Model.DateFin?.ToString("yyyy-MM-dd")" />
+        </div>
+        <button type="submit" class="btn">Filtrer</button>
+        <a href="/Transactions" class="btn ghost">Réinitialiser</a>
+    </form>
+</div>
+
+<div class="panel">
+    <h2>Importer un CSV</h2>
+    <p style="color:var(--text-muted); font-size:.85rem; margin-top:-.5rem">
+        Format attendu : CompteId, Montant, Lieu, Type, DateTransaction
+    </p>
+    <form method="post" asp-page-handler="Importer" enctype="multipart/form-data" class="form-row">
+        @Html.AntiForgeryToken()
+        <input type="file" name="fichier" accept=".csv" required />
+        <button type="submit" class="btn">Importer</button>
+    </form>
+</div>
+
+<div class="panel">
+    <h2>Liste (@Model.Transactions.Count)</h2>
+    @if (Model.Transactions.Any())
+    {
+        <table>
+            <thead>
+                <tr><th>Date</th><th>Compte</th><th>Client</th><th>Type</th><th>Montant</th><th>Lieu</th><th>Statut</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var t in Model.Transactions)
+                {
+                    <tr>
+                        <td class="mono">@t.DateTransaction.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@t.Compte?.NumeroCompte</td>
+                        <td>@t.Compte?.Client?.Prenom @t.Compte?.Client?.Nom</td>
+                        <td>@t.Type</td>
+                        <td class="mono">@t.Montant.ToString("N0") Ar</td>
+                        <td>@t.Lieu</td>
+                        <td><span class="badge @t.Statut">@t.Statut</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="empty-state">Aucune transaction ne correspond aux filtres.</div>
+    }
+</div>

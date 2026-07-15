@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using FraudDetection.API.Services;
+using FraudDetection.API.Features.Alertes;
 
 namespace FraudDetection.API.Features.Transactions
 {
@@ -7,10 +9,17 @@ namespace FraudDetection.API.Features.Transactions
     public class TransactionController : ControllerBase
     {
         private readonly ITransactionService _service;
+        private readonly IFraudDetectionService _fraudService;
+        private readonly IAlerteService _alerteService;
 
-        public TransactionController(ITransactionService service)
+        public TransactionController(
+            ITransactionService service,
+            IFraudDetectionService fraudService,
+            IAlerteService alerteService)
         {
             _service = service;
+            _fraudService = fraudService;
+            _alerteService = alerteService;
         }
 
         // GET /api/transactions
@@ -34,17 +43,8 @@ namespace FraudDetection.API.Features.Transactions
         [HttpPost]
         public async Task<IActionResult> Creer([FromBody] Transaction transaction)
         {
-            var created = await _service.CreerAsync(transaction);
-
-            // POINT D'INTEGRATION avec Membre 1 (ML) et Membre 3 (Alertes)
-            // Membre 1 livrera IFraudDetectionService → on l'appellera ici
-            // Membre 3 livrera IAlerteService → on l'appellera ici aussi
-            // Pour l'instant on laisse un commentaire TODO
-            // TODO: var (score, raison) = _fraudService.Analyser(created, compte);
-            // TODO: await _alerteService.AnalyserEtCreerAlerte(created, score, raison);
-
-            return CreatedAtAction(nameof(GetById),
-                new { id = created.Id }, created);
+            var created = await _service.CreerAsync(transaction); // 🆕 analyse déjà faite à l'intérieur
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         // GET /api/transactions/filtrer?statut=Suspect&dateDebut=2026-01-01
