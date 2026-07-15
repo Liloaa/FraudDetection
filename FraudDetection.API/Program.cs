@@ -106,36 +106,69 @@ using (var scope = app.Services.CreateScope())
         context.Comptes.AddRange(compte1, compte2);
         context.SaveChanges();
 
-        context.Transactions.AddRange(
-            new FraudDetection.API.Features.Transactions.Transaction
+        // 🆕 On ne fixe plus le Statut en dur ("Suspect"/"Normal" choisis à la main).
+        // On crée les transactions avec un Statut temporaire "Normal", puis on
+        // les fait analyser par le vrai modèle ML.NET juste après (voir plus bas).
+        // C'est ce qui causait l'incohérence détectée : ce seed insérait des
+        // statuts codés en dur, sans jamais passer par IFraudDetectionService.
+        var transactionsSeed = new List<Transaction>
+        {
+            new Transaction
             {
                 CompteId = compte1.Id,
                 Montant = 150,
                 Lieu = "Antananarivo",
                 Type = "Retrait",
-                Statut = "Normal",
+                Statut = "Normal", // temporaire, recalculé ci-dessous
                 DateTransaction = DateTime.UtcNow.AddDays(-3)
             },
-            new FraudDetection.API.Features.Transactions.Transaction
+            new Transaction
             {
                 CompteId = compte1.Id,
                 Montant = 8500,
                 Lieu = "Singapour",
                 Type = "Virement",
-                Statut = "Suspect",
+                Statut = "Normal", // temporaire, recalculé ci-dessous
                 DateTransaction = DateTime.UtcNow.AddDays(-1)
             },
-            new FraudDetection.API.Features.Transactions.Transaction
+            new Transaction
             {
                 CompteId = compte2.Id,
                 Montant = 300,
                 Lieu = "Antananarivo",
                 Type = "Paiement",
-                Statut = "Normal",
+                Statut = "Normal", // temporaire, recalculé ci-dessous
                 DateTransaction = DateTime.UtcNow.AddDays(-2)
             }
-        );
-        context.SaveChanges();
+        };
+
+        context.Transactions.AddRange(transactionsSeed);
+        context.SaveChanges(); // Nécessaire pour que chaque transaction obtienne un Id
+
+        // 🆕 On récupère les services d'analyse pour recalculer le VRAI statut
+        // de chaque transaction du seed, exactement comme le fait l'API en
+        // production (via TransactionService.AnalyserEtMettreAJourAsync).
+        var fraudService = scope.ServiceProvider.GetRequiredService<IFraudDetectionService>();
+        var alerteService = scope.ServiceProvider.GetRequiredService<IAlerteService>();
+
+        foreach (var t in transactionsSeed)
+        {
+            // Note : .GetAwaiter().GetResult() est utilisé ici (au lieu de await)
+            // car ce bloc de démarrage n'est pas une méthode async. C'est une
+            // exception acceptée uniquement pour du code d'initialisation ponctuel,
+            // à ne jamais faire ailleurs dans l'application (contrôleurs, services).
+            var (score, raison) = fraudService.AnalyserAsync(t).GetAwaiter().GetResult();
+
+            t.Statut = score >= 0.5f ? "Suspect" : "Normal";
+
+            if (score >= 0.5f)
+            {
+                alerteService.CreerDepuisTransactionAsync(t.Id, score, raison)
+                    .GetAwaiter().GetResult();
+            }
+        }
+
+        context.SaveChanges(); // Sauvegarde les statuts recalculés
     }
 
     // Compte de test par défaut si aucun utilisateur n'existe encore.

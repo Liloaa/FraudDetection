@@ -43,19 +43,8 @@ namespace FraudDetection.API.Features.Transactions
         [HttpPost]
         public async Task<IActionResult> Creer([FromBody] Transaction transaction)
         {
-            var created = await _service.CreerAsync(transaction);
-
-            // Analyse par le modèle IA
-            var (score, raison) = await _fraudService.AnalyserAsync(created);
-
-            // Si le score de risque dépasse 50%, on crée une alerte
-            if (score >= 0.5f)
-            {
-                await _alerteService.CreerDepuisTransactionAsync(created.Id, score, raison);
-            }
-
-            return CreatedAtAction(nameof(GetById),
-                new { id = created.Id }, created);
+            var created = await _service.CreerAsync(transaction); // 🆕 analyse déjà faite à l'intérieur
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         // GET /api/transactions/filtrer?statut=Suspect&dateDebut=2026-01-01

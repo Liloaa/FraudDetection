@@ -6,10 +6,6 @@ using FraudDetection.API.Features.Transactions;
 
 namespace FraudDetection.API.Services
 {
-    // L'interface : elle définit CE QUE le service peut faire, sans dire
-    // COMMENT. Ça permet à d'autres parties du code (comme TransactionController)
-    // de dépendre de cette interface plutôt que de la classe concrète -
-    // une bonne pratique qui facilite les tests et les changements futurs.
     public interface IFraudDetectionService
     {
         Task<(float score, string raison)> AnalyserAsync(Transaction transaction);
@@ -17,40 +13,27 @@ namespace FraudDetection.API.Services
 
     public class FraudDetectionService : IFraudDetectionService
     {
-        // Le "moteur" de prédiction, chargé une seule fois au démarrage.
         private readonly PredictionEngine<TransactionData, FraudPrediction> _predictionEngine;
-
-        // On a besoin d'accéder à la base de données pour calculer l'historique
-        // du compte (fréquence de transactions, montant moyen habituel).
         private readonly AppDbContext _context;
 
-        // Le constructeur s'exécute UNE SEULE FOIS par requête (car le service
-        // est enregistré en "Scoped" - une instance par requête HTTP).
-        // On charge le modèle ici pour ne pas le recharger à chaque appel.
+        // 🆕 Seuil au-delà duquel on considère l'écart comme "hors de portée"
+        // du modèle ML.NET. Valeur provisoire : à ajuster une fois qu'on connaît
+        // le montant max réel utilisé dans vos données d'entraînement.
+        private const float SEUIL_ECART_EXTREME = 500000f;
+
         public FraudDetectionService(AppDbContext context)
         {
             _context = context;
 
             var mlContext = new MLContext();
-
-            // "Services/fraud_model.zip" car le chemin est relatif au dossier
-            // où l'API s'exécute (bin/Debug/net8.0/), et le fichier y est copié
-            // dans un sous-dossier Services/ grâce à notre configuration .csproj.
             ITransformer model = mlContext.Model.Load("Services/fraud_model.zip", out var schema);
-
             _predictionEngine = mlContext.Model.CreatePredictionEngine<TransactionData, FraudPrediction>(model);
         }
 
         public async Task<(float score, string raison)> AnalyserAsync(Transaction transaction)
         {
-            // ----- Calcul des 4 features à partir de l'historique -----
-
-            // 1. HeureTransaction : l'heure en décimal (ex: 14h30 -> 14.5)
             float heure = transaction.DateTransaction.Hour + transaction.DateTransaction.Minute / 60f;
 
-            // 2. FrequenceTransactions24h : nombre de transactions de ce compte
-            // dans les 24h précédant CETTE transaction (pas après, sinon on
-            // "trahirait" le futur - erreur classique à éviter en ML)
             var borneBasse = transaction.DateTransaction.AddHours(-24);
             int frequence = await _context.Transactions
                 .Where(t => t.CompteId == transaction.CompteId
@@ -58,8 +41,6 @@ namespace FraudDetection.API.Services
                          && t.DateTransaction < transaction.DateTransaction)
                 .CountAsync();
 
-            // 3. EcartMontantMoyen : écart entre cette transaction et la moyenne
-            // des transactions précédentes de ce même compte
             var transactionsPrecedentes = await _context.Transactions
                 .Where(t => t.CompteId == transaction.CompteId
                          && t.DateTransaction < transaction.DateTransaction)
@@ -68,11 +49,9 @@ namespace FraudDetection.API.Services
 
             float montantMoyen = transactionsPrecedentes.Any()
                 ? (float)transactionsPrecedentes.Average()
-                : (float)transaction.Montant; // pas d'historique = pas d'écart
+                : (float)transaction.Montant;
 
             float ecart = (float)transaction.Montant - montantMoyen;
-
-            // ----- Prédiction -----
 
             var donnees = new TransactionData
             {
@@ -84,12 +63,39 @@ namespace FraudDetection.API.Services
 
             var prediction = _predictionEngine.Predict(donnees);
 
-            string raison = prediction.EstFraudePredite
-                ? $"Montant: {transaction.Montant}, Heure: {heure:F1}h, " +
-                  $"Frequence 24h: {frequence}, Ecart moyenne: {ecart:F0}"
-                : "Transaction jugee normale";
+            // 🆕 Garde-fou métier : le modèle ML.NET a été entraîné sur un
+            // dataset limité et peut mal généraliser sur des écarts jamais vus
+            // pendant l'entraînement (limite connue des arbres de décision type
+            // FastTree, qui extrapolent mal hors de leur plage d'apprentissage).
+            // On combine donc le ML avec une règle métier de sécurité, une
+            // pratique standard dans les systèmes anti-fraude réels.
+            bool ecartExtreme = Math.Abs(ecart) > SEUIL_ECART_EXTREME;
+            bool estSuspecte = prediction.EstFraudePredite || ecartExtreme;
 
-            return (prediction.Probability, raison);
+            // 🆕 On construit la raison différemment selon la source de la décision,
+            // pour que ce soit traçable et explicable (important en conformité bancaire).
+            string raison;
+            if (ecartExtreme && !prediction.EstFraudePredite)
+            {
+                raison = $"Ecart extreme detecte (regle de securite) - " +
+                          $"Montant: {transaction.Montant}, Ecart moyenne: {ecart:F0}, " +
+                          $"Heure: {heure:F1}h, Frequence 24h: {frequence}";
+            }
+            else if (prediction.EstFraudePredite)
+            {
+                raison = $"Montant: {transaction.Montant}, Heure: {heure:F1}h, " +
+                          $"Frequence 24h: {frequence}, Ecart moyenne: {ecart:F0}";
+            }
+            else
+            {
+                raison = "Transaction jugee normale";
+            }
+
+            // 🆕 On retourne un score de 1.0 (100%) quand c'est le garde-fou qui
+            // déclenche, pour que ce soit visible clairement dans le dashboard.
+            float score = ecartExtreme && !prediction.EstFraudePredite ? 1.0f : prediction.Probability;
+
+            return (score, raison);
         }
     }
 }
