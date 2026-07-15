@@ -1,6 +1,42 @@
-﻿namespace FraudDetection.API.Pages
-{
-    public class Alertes
-    {
-    }
-}
+﻿@page
+@model FraudDetection.API.Pages.AlertesModel
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Alertes de fraude</title>
+</head>
+<body>
+
+    <h2>🚨 Alertes de fraude</h2>
+
+    <table class="table" id="tableAlertes" border="1" cellpadding="8">
+        <thead>
+            <tr>
+                <th>Statut</th>
+                <th>Transaction</th>
+                <th>Score</th>
+                <th>Raison</th>
+                <th>Détectée le</th>
+            </tr>
+        </thead>
+        <tbody id="corpsTableAlertes">
+            @foreach (var alerte in Model.Alertes)
+        {
+            <tr>
+                <td>@alerte.Statut</td>
+                <td>#@alerte.TransactionId</td>
+                <td>@alerte.ScoreRisque.ToString("P0")</td>
+                <td>@alerte.Raison</td>
+                <td>@alerte.DetecteLe.ToLocalTime()</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/signalr.js"></script>
+
+</body>
+</html>
