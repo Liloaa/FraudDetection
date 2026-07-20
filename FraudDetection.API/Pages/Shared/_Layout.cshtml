@@ -1,0 +1,47 @@
+﻿@{
+    var page = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+    string NavClass(string name) => page.Contains(name, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] — FraudDetection</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">Fraud<span>Detection</span></div>
+
+            <ul class="nav-list">
+                <li><a href="/Dashboard" class="@NavClass("Dashboard")">📊 Dashboard</a></li>
+                <li><a href="/Transactions" class="@NavClass("Transactions")">💳 Transactions</a></li>
+                <li><a href="/Alertes" class="@NavClass("Alertes")">🚨 Alertes</a></li>
+                <li><a href="/Rapports" class="@NavClass("Rapports")">📈 Rapports</a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="user-chip">
+                        <strong>@User.Identity.Name</strong>
+                        @User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                    </div>
+                    <form method="post" action="/Auth/Logout">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn ghost small" style="width:100%">Se déconnecter</button>
+                    </form>
+                }
+            </div>
+        </aside>
+
+        <main class="main">
+            @RenderBody()
+        </main>
+    </div>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace FraudDetection.API.Pages
+namespace FraudDetection.API.Pages.Shared
 {
-    public class _ViewStartModel : PageModel
+    public class _LayoutModel : PageModel
     {
         public void OnGet()
         {
